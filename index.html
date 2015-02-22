@@ -1,35 +1,41 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
+    <meta charset='utf-8'>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Rgdk.GitHub.io by rgdk</title>
-
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
+    <title>Rgdk.GitHub.io by rgdk</title>
   </head>
+
   <body>
-    <div class="wrapper">
-      <header>
-        <h1>Rgdk.GitHub.io</h1>
-        <p></p>
+    <div id="container">
+      <div class="inner">
 
+        <header>
+          <h1>Rgdk.GitHub.io</h1>
+          <h2></h2>
+        </header>
 
-        <p class="view"><a href="https://github.com/rgdk">View My GitHub Profile</a></p>
+        <section id="downloads" class="clearfix">
+          <a href="https://github.com/rgdk" id="view-on-github" class="button"><span>View on GitHub</span></a>
+        </section>
 
-      </header>
-      <section>
         <hr>
 
+        <section id="main_content">
+          <hr>
+
 <p>title: "Creating a Prediction Model for Exercise Style Using Accelerometric Data"
-date: "Thursday, February 19, 2015"</p>
+output: pdf_document</p>
 
 <h2>
-<a id="output-html_document" class="anchor" href="#output-html_document" aria-hidden="true"><span class="octicon octicon-link"></span></a>output: html_document</h2>
+<a id="date-thursday-february-19-2015" class="anchor" href="#date-thursday-february-19-2015" aria-hidden="true"><span class="octicon octicon-link"></span></a>date: "Thursday, February 19, 2015"</h2>
 
 <h2>
 <a id="introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
@@ -60,9 +66,11 @@ suppressWarnings(library(<span class="pl-vo">survival</span>))</pre></div>
 
 <p>Next retrieve the data sets - note that the non-readable strings found in the data set are set to Null by the read.csv() function.</p>
 
-<div class="highlight highlight-r"><pre>setwd(<span class="pl-s1"><span class="pl-pds">"</span>C:/Training/DataScienceJHU/PracticalMachineLearning/Project<span class="pl-pds">"</span></span>)
-<span class="pl-vo">testing</span> <span class="pl-k">&lt;-</span> read.csv(<span class="pl-s1"><span class="pl-pds">"</span>pml-testing.csv<span class="pl-pds">"</span></span>, <span class="pl-v">stringsAsFactors</span><span class="pl-k">=</span><span class="pl-c1">TRUE</span>, <span class="pl-v">na.strings</span><span class="pl-k">=</span>c(<span class="pl-s1"><span class="pl-pds">"</span>NA<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>#DIV/0!<span class="pl-pds">"</span></span>))
-<span class="pl-vo">training</span> <span class="pl-k">&lt;-</span> read.csv(<span class="pl-s1"><span class="pl-pds">"</span>pml-training.csv<span class="pl-pds">"</span></span>, <span class="pl-v">stringsAsFactors</span><span class="pl-k">=</span><span class="pl-c1">TRUE</span>, <span class="pl-v">na.strings</span><span class="pl-k">=</span>c(<span class="pl-s1"><span class="pl-pds">"</span>NA<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>#DIV/0!<span class="pl-pds">"</span></span>))</pre></div>
+<div class="highlight highlight-r"><pre><span class="pl-vo">url_train</span> <span class="pl-k">&lt;-</span> <span class="pl-s1"><span class="pl-pds">"</span>https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv<span class="pl-pds">"</span></span>
+<span class="pl-vo">url_test</span> <span class="pl-k">&lt;-</span> <span class="pl-s1"><span class="pl-pds">"</span>https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv<span class="pl-pds">"</span></span>
+
+<span class="pl-vo">training</span> <span class="pl-k">&lt;-</span> read.csv(<span class="pl-s1"><span class="pl-pds">"</span>pml-training.csv<span class="pl-pds">"</span></span>, <span class="pl-v">stringsAsFactors</span><span class="pl-k">=</span><span class="pl-c1">TRUE</span>, <span class="pl-v">na.strings</span><span class="pl-k">=</span>c(<span class="pl-s1"><span class="pl-pds">"</span>NA<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>#DIV/0!<span class="pl-pds">"</span></span>))
+<span class="pl-vo">testing</span> <span class="pl-k">&lt;-</span> read.csv(<span class="pl-s1"><span class="pl-pds">"</span>pml-testing.csv<span class="pl-pds">"</span></span>, <span class="pl-v">stringsAsFactors</span><span class="pl-k">=</span><span class="pl-c1">TRUE</span>, <span class="pl-v">na.strings</span><span class="pl-k">=</span>c(<span class="pl-s1"><span class="pl-pds">"</span>NA<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>#DIV/0!<span class="pl-pds">"</span></span>))</pre></div>
 
 <p>Display the numbers of samples and variables for both the training and test data sets</p>
 
@@ -153,6 +161,8 @@ length(names(<span class="pl-vo">trainingSubset</span>))</pre></div>
 
 <p>The Accuracy of the model appears to be 64.1%.</p>
 
+<p>The Out of Sample error is (1 - accuracy) = 35.9%</p>
+
 <p>Next we have elected to use a Generalised Boosted Regression (GBM) model with cross-validation involving 3 times resampling</p>
 
 <div class="highlight highlight-r"><pre><span class="pl-vo">trainCtrl</span> <span class="pl-k">&lt;-</span> trainControl(<span class="pl-v">method</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>cv<span class="pl-pds">"</span></span>, <span class="pl-v">number</span><span class="pl-k">=</span><span class="pl-c1">3</span>)
@@ -165,6 +175,8 @@ length(names(<span class="pl-vo">trainingSubset</span>))</pre></div>
 <span class="pl-vo">GBMConfusionmatrix</span></pre></div>
 
 <p>The Accuracy of the model appears to be 94.9%.</p>
+
+<p>The Out of Sample error is (1 - accuracy) = 5.1%</p>
 
 <p>Lets see what the optimal model parameters were.</p>
 
@@ -191,8 +203,11 @@ length(names(<span class="pl-vo">trainingSubset</span>))</pre></div>
 
 <div class="highlight highlight-r"><pre><span class="pl-vo">RFmodelFit</span><span class="pl-k">$</span><span class="pl-vo">finalModel</span></pre></div>
 
-<p>It can be seen that the Out Of Bag estimate of error rate is 0.75%
-The accuracy is: 99.2% which is reflected in the following plot.</p>
+<p>The accuracy is: 99.2%.</p>
+
+<p>The Out of Sample error is (1 - accuracy) = 0.8</p>
+
+<p>This is reflected in the following plot.</p>
 
 <div class="highlight highlight-r"><pre>plot(<span class="pl-vo">RFmodelFit</span>)</pre></div>
 
@@ -238,12 +253,14 @@ names(<span class="pl-vo">answers</span>)<span class="pl-k">&lt;-</span>c(<span 
 <p>From these results it appears that the minor difference in accuracy between the RF and GMB models made no difference in the outcome when applied to the test set. The LDA model, however, produced vastly different results.</p>
 
 <p>On the basis of accuracy alone, the present analysis has decided to choose the Random Forest model.</p>
-      </section>
-      <footer>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
+        </section>
+
+        <footer>
+          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
+        </footer>
+
+        
+      </div>
     </div>
-    <script src="javascripts/scale.fix.js"></script>
-    
   </body>
 </html>
