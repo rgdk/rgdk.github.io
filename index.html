@@ -1,0 +1,249 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Rgdk.GitHub.io by rgdk</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Rgdk.GitHub.io</h1>
+        <p></p>
+
+
+        <p class="view"><a href="https://github.com/rgdk">View My GitHub Profile</a></p>
+
+      </header>
+      <section>
+        <hr>
+
+<p>title: "Creating a Prediction Model for Exercise Style Using Accelerometric Data"
+date: "Thursday, February 19, 2015"</p>
+
+<h2>
+<a id="output-html_document" class="anchor" href="#output-html_document" aria-hidden="true"><span class="octicon octicon-link"></span></a>output: html_document</h2>
+
+<h2>
+<a id="introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>The following analysis is based on data from the 2013 Human Activity Recognition study by Wallace, Velloso and Fuks, <strong>"Qualitative Activity Recognition of Weight Lifting Exercises"</strong>. In it, the researchers record accelometric data from six subjects performing repetitions of the Unilateral Dumbbell Biceps Curl exercise. Each set of repetitions was done in five different ways. These are (as outlined in their paper):</p>
+
+<ul>
+<li>Exactly according to the specification (Class A) </li>
+<li>Throwing the elbows to the front (Class B)</li>
+<li>Lifting the dumbbell only halfway (Class C) </li>
+<li>Lowering the dumbbell only halfway (Class D) </li>
+<li>Throwing the hips to the front (Class E)</li>
+</ul>
+
+<p>Read more at: <a href="http://groupware.les.inf.puc-rio.br/har#ixzz3SNZVfYmr">http://groupware.les.inf.puc-rio.br/har#ixzz3SNZVfYmr</a></p>
+
+<p>The present paper utlises this data to identify a suitable model to be used to predict the manner in which the exercise was carried out (classes A-E), which is stored in the variable 'classe'.</p>
+
+<h2>
+<a id="data-preparation" class="anchor" href="#data-preparation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data Preparation</h2>
+
+<p>First install the required libraries that will be referenced during the analysis.</p>
+
+<div class="highlight highlight-r"><pre>suppressWarnings(library(<span class="pl-vo">caret</span>))
+suppressWarnings(library(<span class="pl-vo">e1071</span>))
+suppressWarnings(library(<span class="pl-vo">corrplot</span>))
+suppressWarnings(library(<span class="pl-vo">survival</span>))</pre></div>
+
+<p>Next retrieve the data sets - note that the non-readable strings found in the data set are set to Null by the read.csv() function.</p>
+
+<div class="highlight highlight-r"><pre>setwd(<span class="pl-s1"><span class="pl-pds">"</span>C:/Training/DataScienceJHU/PracticalMachineLearning/Project<span class="pl-pds">"</span></span>)
+<span class="pl-vo">testing</span> <span class="pl-k">&lt;-</span> read.csv(<span class="pl-s1"><span class="pl-pds">"</span>pml-testing.csv<span class="pl-pds">"</span></span>, <span class="pl-v">stringsAsFactors</span><span class="pl-k">=</span><span class="pl-c1">TRUE</span>, <span class="pl-v">na.strings</span><span class="pl-k">=</span>c(<span class="pl-s1"><span class="pl-pds">"</span>NA<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>#DIV/0!<span class="pl-pds">"</span></span>))
+<span class="pl-vo">training</span> <span class="pl-k">&lt;-</span> read.csv(<span class="pl-s1"><span class="pl-pds">"</span>pml-training.csv<span class="pl-pds">"</span></span>, <span class="pl-v">stringsAsFactors</span><span class="pl-k">=</span><span class="pl-c1">TRUE</span>, <span class="pl-v">na.strings</span><span class="pl-k">=</span>c(<span class="pl-s1"><span class="pl-pds">"</span>NA<span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>,<span class="pl-s1"><span class="pl-pds">"</span>#DIV/0!<span class="pl-pds">"</span></span>))</pre></div>
+
+<p>Display the numbers of samples and variables for both the training and test data sets</p>
+
+<div class="highlight highlight-r"><pre>dim(<span class="pl-vo">training</span>)
+dim(<span class="pl-vo">testing</span>)</pre></div>
+
+<p>Remove the null-only columns from the data set</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">non_null_cols</span> <span class="pl-k">&lt;-</span> names(<span class="pl-vo">training</span>)[apply(<span class="pl-v">X</span><span class="pl-k">=</span><span class="pl-vo">training</span>, <span class="pl-v">MARGIN</span><span class="pl-k">=</span><span class="pl-c1">2</span>, <span class="pl-v">FUN</span><span class="pl-k">=</span><span class="pl-k">function</span>(<span class="pl-vo">x</span>) <span class="pl-k">!</span>sum(is.na(<span class="pl-vo">x</span>[<span class="pl-c1">1</span>])))]
+<span class="pl-vo">trainingSubset</span> <span class="pl-k">&lt;-</span> <span class="pl-vo">training</span>[,<span class="pl-vo">non_null_cols</span>]
+dim(<span class="pl-vo">trainingSubset</span>)</pre></div>
+
+<p>100 variables have now been discarded, leaving the following 60 contenders.</p>
+
+<div class="highlight highlight-r"><pre>names(<span class="pl-vo">trainingSubset</span>)</pre></div>
+
+<p>We notice that some of the remaining variables are non-measurement data columns. These are now removed.</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">measure_cols</span> <span class="pl-k">&lt;-</span> names(<span class="pl-vo">trainingSubset</span>)[<span class="pl-k">!</span>(names(<span class="pl-vo">trainingSubset</span>) <span class="pl-k">%in%</span> 
+                                          c(<span class="pl-s1"><span class="pl-pds">"</span>X<span class="pl-pds">"</span></span>,
+                                            <span class="pl-s1"><span class="pl-pds">"</span>user_name<span class="pl-pds">"</span></span>,
+                                            <span class="pl-s1"><span class="pl-pds">"</span>raw_timestamp_part_1<span class="pl-pds">"</span></span>,
+                                            <span class="pl-s1"><span class="pl-pds">"</span>raw_timestamp_part_2<span class="pl-pds">"</span></span>,
+                                            <span class="pl-s1"><span class="pl-pds">"</span>cvtd_timestamp<span class="pl-pds">"</span></span>,
+                                            <span class="pl-s1"><span class="pl-pds">"</span>new_window<span class="pl-pds">"</span></span>,
+                                            <span class="pl-s1"><span class="pl-pds">"</span>num_window<span class="pl-pds">"</span></span>))]
+
+<span class="pl-vo">trainingSubset</span> <span class="pl-k">&lt;-</span> <span class="pl-vo">trainingSubset</span>[,names(<span class="pl-vo">trainingSubset</span>) <span class="pl-k">%in%</span> <span class="pl-vo">measure_cols</span>]</pre></div>
+
+<p>Determine if there are near zero covariates amonst the remaining variables.</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">nzv</span> <span class="pl-k">&lt;-</span> nearZeroVar(<span class="pl-vo">trainingSubset</span>, <span class="pl-v">saveMetrics</span><span class="pl-k">=</span><span class="pl-c1">TRUE</span>)
+<span class="pl-vo">nzv</span></pre></div>
+
+<p>It appears that there are none to be removed. </p>
+
+<p>Determine which variables remain </p>
+
+<div class="highlight highlight-r"><pre>names(<span class="pl-vo">trainingSubset</span>)</pre></div>
+
+<p>Look at the distribution of values in the classe variable that is to be predicted. </p>
+
+<div class="highlight highlight-r"><pre>table(<span class="pl-vo">trainingSubset</span><span class="pl-k">$</span><span class="pl-vo">classe</span>)</pre></div>
+
+<p>It appears that there are more in class A than any other class.</p>
+
+<p>Determine any near-perfectly correlated variables which we define as those with a greater correlation than +/-0.8</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">correlValues</span> <span class="pl-k">&lt;-</span> abs(cor(<span class="pl-vo">trainingSubset</span>[,<span class="pl-k">-</span><span class="pl-c1">53</span>]))
+diag(<span class="pl-vo">correlValues</span>) <span class="pl-k">&lt;-</span> <span class="pl-c1">0</span></pre></div>
+
+<p>Plot the correlations</p>
+
+<div class="highlight highlight-r"><pre>corrplot(<span class="pl-vo">correlValues</span>, <span class="pl-v">method</span><span class="pl-k">=</span><span class="pl-s1"><span class="pl-pds">"</span>square<span class="pl-pds">"</span></span>, <span class="pl-v">type</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>lower<span class="pl-pds">"</span></span>, <span class="pl-v">tl.cex</span><span class="pl-k">=</span><span class="pl-c1">0.8</span>)</pre></div>
+
+<p>Determine the column indices of the variables with high correlation and display them</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">highCorr</span> <span class="pl-k">&lt;-</span> findCorrelation(<span class="pl-vo">correlValues</span>[,<span class="pl-k">-</span><span class="pl-c1">53</span>], <span class="pl-v">cutoff</span> <span class="pl-k">=</span> .<span class="pl-c1">80</span>)     <span class="pl-c"># high correlation</span>
+names(<span class="pl-vo">trainingSubset</span>[,<span class="pl-vo">highCorr</span>])</pre></div>
+
+<p>Remove these highly correlated variables and display the remaining variables</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">trainingSubset</span><span class="pl-k">&lt;-</span><span class="pl-vo">trainingSubset</span>[,<span class="pl-k">-</span><span class="pl-vo">highCorr</span>]    
+length(names(<span class="pl-vo">trainingSubset</span>))</pre></div>
+
+<p>Now divide and train the training data.</p>
+
+<div class="highlight highlight-r"><pre>set.seed(<span class="pl-c1">56789</span>)
+<span class="pl-v">inTrain</span> <span class="pl-k">=</span> createDataPartition(<span class="pl-v">y</span><span class="pl-k">=</span><span class="pl-vo">trainingSubset</span><span class="pl-k">$</span><span class="pl-vo">classe</span>, <span class="pl-v">p</span><span class="pl-k">=</span><span class="pl-c1">0.75</span>, <span class="pl-v">list</span><span class="pl-k">=</span><span class="pl-c1">FALSE</span>)
+<span class="pl-v">traindata</span> <span class="pl-k">=</span> <span class="pl-vo">trainingSubset</span>[ <span class="pl-vo">inTrain</span>,]
+<span class="pl-v">testdata</span> <span class="pl-k">=</span>  <span class="pl-vo">trainingSubset</span>[<span class="pl-k">-</span><span class="pl-vo">inTrain</span>,]</pre></div>
+
+<h2>
+<a id="setup-the-prediction-model" class="anchor" href="#setup-the-prediction-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup the prediction model</h2>
+
+<p>We will evaluate three different models before settling on a final choice.</p>
+
+<p>First we have elected to use a Linear Discriminant Analysis (LDA) model with cross-validation involving 3 times resampling</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">trainCtrl</span> <span class="pl-k">&lt;-</span> trainControl(<span class="pl-v">method</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>cv<span class="pl-pds">"</span></span>, <span class="pl-v">number</span><span class="pl-k">=</span><span class="pl-c1">3</span>)
+<span class="pl-vo">LDAmodelFit</span> <span class="pl-k">&lt;-</span> train(<span class="pl-vo">classe</span> <span class="pl-k">~</span> ., <span class="pl-v">method</span><span class="pl-k">=</span><span class="pl-s1"><span class="pl-pds">"</span>lda<span class="pl-pds">"</span></span>, <span class="pl-v">data</span><span class="pl-k">=</span><span class="pl-vo">traindata</span>, <span class="pl-v">trControl</span><span class="pl-k">=</span><span class="pl-vo">trainCtrl</span>)
+<span class="pl-vo">LDAmodelFit</span></pre></div>
+
+<p>To see how successful the LDA model is we run a confusion matrix.</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">LDAConfusionmatrix</span> <span class="pl-k">&lt;-</span> confusionMatrix(<span class="pl-vo">testdata</span><span class="pl-k">$</span><span class="pl-vo">classe</span>,predict(<span class="pl-vo">LDAmodelFit</span>,<span class="pl-vo">testdata</span>))
+<span class="pl-vo">LDAConfusionmatrix</span></pre></div>
+
+<p>The Accuracy of the model appears to be 64.1%.</p>
+
+<p>Next we have elected to use a Generalised Boosted Regression (GBM) model with cross-validation involving 3 times resampling</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">trainCtrl</span> <span class="pl-k">&lt;-</span> trainControl(<span class="pl-v">method</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>cv<span class="pl-pds">"</span></span>, <span class="pl-v">number</span><span class="pl-k">=</span><span class="pl-c1">3</span>)
+<span class="pl-vo">GBMmodelFit</span> <span class="pl-k">&lt;-</span> train(<span class="pl-vo">classe</span> <span class="pl-k">~</span> ., <span class="pl-v">method</span><span class="pl-k">=</span><span class="pl-s1"><span class="pl-pds">"</span>gbm<span class="pl-pds">"</span></span>, <span class="pl-v">data</span><span class="pl-k">=</span><span class="pl-vo">traindata</span>, <span class="pl-v">trControl</span><span class="pl-k">=</span><span class="pl-vo">trainCtrl</span>, <span class="pl-v">verbose</span> <span class="pl-k">=</span> <span class="pl-c1">FALSE</span>)
+<span class="pl-vo">GBMmodelFit</span></pre></div>
+
+<p>To see how successful the GBM model is we run a confusion matrix.</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">GBMConfusionmatrix</span> <span class="pl-k">&lt;-</span> confusionMatrix(<span class="pl-vo">testdata</span><span class="pl-k">$</span><span class="pl-vo">classe</span>,predict(<span class="pl-vo">GBMmodelFit</span>,<span class="pl-vo">testdata</span>))
+<span class="pl-vo">GBMConfusionmatrix</span></pre></div>
+
+<p>The Accuracy of the model appears to be 94.9%.</p>
+
+<p>Lets see what the optimal model parameters were.</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">GBMmodelFit</span></pre></div>
+
+<p>These results are reflected in the following plot.</p>
+
+<div class="highlight highlight-r"><pre>plot(<span class="pl-vo">GBMmodelFit</span>)</pre></div>
+
+<p>It appears that greater accuracy is achieved in the gbm model with more trees and greater depth of the analysis. An even better result may be had by changing either of these parameters.  </p>
+
+<p>Finally we have elected to use a Random Forest (RF) model with cross-validation involving 3 times resampling</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">trainCtrl</span> <span class="pl-k">&lt;-</span> trainControl(<span class="pl-v">method</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>cv<span class="pl-pds">"</span></span>, <span class="pl-v">number</span><span class="pl-k">=</span><span class="pl-c1">3</span>)
+<span class="pl-vo">RFmodelFit</span> <span class="pl-k">&lt;-</span> train(<span class="pl-vo">classe</span> <span class="pl-k">~</span> ., <span class="pl-v">method</span><span class="pl-k">=</span><span class="pl-s1"><span class="pl-pds">"</span>rf<span class="pl-pds">"</span></span>, <span class="pl-v">data</span><span class="pl-k">=</span><span class="pl-vo">traindata</span>, <span class="pl-v">trControl</span><span class="pl-k">=</span><span class="pl-vo">trainCtrl</span>, <span class="pl-v">importance</span><span class="pl-k">=</span><span class="pl-c1">TRUE</span>)
+<span class="pl-vo">RFmodelFit</span></pre></div>
+
+<p>To see how successful the RF model is we run a confusion matrix.</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">RFConfusionmatrix</span> <span class="pl-k">&lt;-</span> confusionMatrix(<span class="pl-vo">testdata</span><span class="pl-k">$</span><span class="pl-vo">classe</span>,predict(<span class="pl-vo">RFmodelFit</span>,<span class="pl-vo">testdata</span>))
+<span class="pl-vo">RFConfusionmatrix</span></pre></div>
+
+<p>Lets see what the estimated overall error rate is:</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">RFmodelFit</span><span class="pl-k">$</span><span class="pl-vo">finalModel</span></pre></div>
+
+<p>It can be seen that the Out Of Bag estimate of error rate is 0.75%
+The accuracy is: 99.2% which is reflected in the following plot.</p>
+
+<div class="highlight highlight-r"><pre>plot(<span class="pl-vo">RFmodelFit</span>)</pre></div>
+
+<p>It appears that the RF model is extremely accurate with over 99% accuracy across each classe grouping. This was closely followed by the gbm boosting model at just under 95% accuracy.The LDA model followed way behind with only a 64% accuracy.</p>
+
+<h2>
+<a id="in-conclusion" class="anchor" href="#in-conclusion" aria-hidden="true"><span class="octicon octicon-link"></span></a>In Conclusion</h2>
+
+<p>So what are the answers given by each of the models?</p>
+
+<p>Linear Discriminant Analysis:</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">LDAtest_answers</span> <span class="pl-k">&lt;-</span> predict(<span class="pl-vo">LDAmodelFit</span>, <span class="pl-vo">testingSubset</span>[,<span class="pl-k">-</span><span class="pl-c1">41</span>])</pre></div>
+
+<p>GBM:</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">GBMtest_answers</span> <span class="pl-k">&lt;-</span> predict(<span class="pl-vo">GBMmodelFit</span>, <span class="pl-vo">testingSubset</span>[,<span class="pl-k">-</span><span class="pl-c1">41</span>])</pre></div>
+
+<p>Random Forest:</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">RFtest_answers</span> <span class="pl-k">&lt;-</span> predict(<span class="pl-vo">RFmodelFit</span>, <span class="pl-vo">testingSubset</span>[,<span class="pl-k">-</span><span class="pl-c1">41</span>])</pre></div>
+
+<p>Let's look at the results of each test when the prediction models are applied:</p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">answers</span> <span class="pl-k">&lt;-</span> as.data.frame(<span class="pl-st">matrix</span>(seq(<span class="pl-c1">NA</span>), <span class="pl-v">nrow</span><span class="pl-k">=</span><span class="pl-c1">3</span>, <span class="pl-v">ncol</span><span class="pl-k">=</span><span class="pl-c1">21</span>))
+
+names(<span class="pl-vo">answers</span>)<span class="pl-k">&lt;-</span>c(<span class="pl-s1"><span class="pl-pds">'</span>Test Name<span class="pl-pds">'</span></span>,
+                  <span class="pl-s1"><span class="pl-pds">'</span>Test 1<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 2<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 3<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 4<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 5<span class="pl-pds">'</span></span>,
+                  <span class="pl-s1"><span class="pl-pds">'</span>Test 6<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 7<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 8<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 9<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 10<span class="pl-pds">'</span></span>,
+                  <span class="pl-s1"><span class="pl-pds">'</span>Test 11<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 12<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 13<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 14<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 15<span class="pl-pds">'</span></span>,
+                  <span class="pl-s1"><span class="pl-pds">'</span>Test 16<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 17<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 18<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 19<span class="pl-pds">'</span></span>,<span class="pl-s1"><span class="pl-pds">'</span>Test 20<span class="pl-pds">'</span></span>)
+
+<span class="pl-vo">answers</span>[<span class="pl-c1">1</span>,<span class="pl-c1">1</span>] <span class="pl-k">&lt;-</span> <span class="pl-s1"><span class="pl-pds">'</span>LDA<span class="pl-pds">'</span></span>
+<span class="pl-vo">answers</span>[<span class="pl-c1">2</span>,<span class="pl-c1">1</span>] <span class="pl-k">&lt;-</span> <span class="pl-s1"><span class="pl-pds">'</span>GMB<span class="pl-pds">'</span></span>
+<span class="pl-vo">answers</span>[<span class="pl-c1">3</span>,<span class="pl-c1">1</span>] <span class="pl-k">&lt;-</span> <span class="pl-s1"><span class="pl-pds">'</span>RF<span class="pl-pds">'</span></span>
+
+<span class="pl-vo">answers</span>[<span class="pl-c1">1</span>,<span class="pl-c1">2</span><span class="pl-k">:</span><span class="pl-c1">21</span>] <span class="pl-k">&lt;-</span> as.factor(<span class="pl-vo">LDAtest_answers</span>)
+<span class="pl-vo">answers</span>[<span class="pl-c1">2</span>,<span class="pl-c1">2</span><span class="pl-k">:</span><span class="pl-c1">21</span>] <span class="pl-k">&lt;-</span> as.factor(<span class="pl-vo">GBMtest_answers</span>)
+<span class="pl-vo">answers</span>[<span class="pl-c1">3</span>,<span class="pl-c1">2</span><span class="pl-k">:</span><span class="pl-c1">21</span>] <span class="pl-k">&lt;-</span> as.factor(<span class="pl-vo">RFtest_answers</span>)
+
+<span class="pl-vo">answers</span></pre></div>
+
+<p>From these results it appears that the minor difference in accuracy between the RF and GMB models made no difference in the outcome when applied to the test set. The LDA model, however, produced vastly different results.</p>
+
+<p>On the basis of accuracy alone, the present analysis has decided to choose the Random Forest model.</p>
+      </section>
+      <footer>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
